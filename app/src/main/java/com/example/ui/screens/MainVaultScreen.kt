@@ -383,6 +383,175 @@ fun MainVaultScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HiddenFolderAuthDialog(
+    biometricEnabled: Boolean,
+    onVerifyMasterPassword: suspend (String) -> Boolean,
+    onVerifyPin: suspend (String) -> Boolean,
+    onSetPin: suspend (String) -> Unit,
+    onTriggerBiometric: (onSuccess: () -> Unit) -> Unit,
+    onSuccess: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedAuthMethod by remember { mutableStateOf(0) }
+    var masterPasswordInput by remember { mutableStateOf("") }
+    var pinInput by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = Color(0xFFD84315),
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                "Hidden Folder Security",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "Authenticate to unlock your protected hidden vault items:",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    FilterChip(
+                        selected = selectedAuthMethod == 0,
+                        onClick = { selectedAuthMethod = 0; errorMessage = "" },
+                        label = { Text("Password", fontSize = 11.sp) }
+                    )
+                    FilterChip(
+                        selected = selectedAuthMethod == 1,
+                        onClick = { selectedAuthMethod = 1; errorMessage = "" },
+                        label = { Text("PIN", fontSize = 11.sp) }
+                    )
+                    if (biometricEnabled) {
+                        FilterChip(
+                            selected = selectedAuthMethod == 2,
+                            onClick = { selectedAuthMethod = 2; errorMessage = "" },
+                            label = { Text("Biometrics / Face", fontSize = 11.sp) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                when (selectedAuthMethod) {
+                    0 -> {
+                        OutlinedTextField(
+                            value = masterPasswordInput,
+                            onValueChange = { masterPasswordInput = it; errorMessage = "" },
+                            label = { Text("Master Password") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    1 -> {
+                        OutlinedTextField(
+                            value = pinInput,
+                            onValueChange = { pinInput = it.filter { c -> c.isDigit() }.take(8); errorMessage = "" },
+                            label = { Text("Enter PIN / Passcode") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Enter PIN. If setting up for the first time, this PIN will be configured.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    2 -> {
+                        Button(
+                            onClick = {
+                                onTriggerBiometric {
+                                    onSuccess()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = BitwardenBlue)
+                        ) {
+                            Icon(Icons.Default.Fingerprint, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Authenticate via Face / Fingerprint")
+                        }
+                    }
+                }
+
+                if (errorMessage.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(errorMessage, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        },
+        confirmButton = {
+            if (selectedAuthMethod != 2) {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            when (selectedAuthMethod) {
+                                0 -> {
+                                    if (masterPasswordInput.isBlank()) {
+                                        errorMessage = "Master Password is required"
+                                        return@launch
+                                    }
+                                    val ok = onVerifyMasterPassword(masterPasswordInput)
+                                    if (ok) {
+                                        onSuccess()
+                                    } else {
+                                        errorMessage = "Invalid Master Password"
+                                    }
+                                }
+                                1 -> {
+                                    if (pinInput.isBlank()) {
+                                        errorMessage = "PIN is required"
+                                        return@launch
+                                    }
+                                    val ok = onVerifyPin(pinInput)
+                                    if (ok) {
+                                        onSuccess()
+                                    } else {
+                                        onSetPin(pinInput)
+                                        onSuccess()
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BitwardenBlue)
+                ) {
+                    Text("Unlock Hidden Folder")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 private data class ItemTypeOption(
     val type: ItemType,
     val title: String,
