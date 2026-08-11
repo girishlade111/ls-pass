@@ -39,6 +39,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import com.example.ui.theme.BitwardenBlue
 
 import com.example.ui.components.AnimatedVisibilityIcon
@@ -55,16 +60,20 @@ fun SetupScreen(
     var enableBiometric by remember { mutableStateOf(true) }
     var showPassword by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
         FluentAppLogoEmblem(
             size = 72.dp,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -96,6 +105,7 @@ fun SetupScreen(
             label = { Text("Master Password") },
             singleLine = true,
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             trailingIcon = {
                 AnimatedVisibilityIcon(
                     isVisible = showPassword,
@@ -127,6 +137,7 @@ fun SetupScreen(
             label = { Text("Re-type Master Password") },
             singleLine = true,
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = BitwardenBlue,
@@ -141,6 +152,8 @@ fun SetupScreen(
             onValueChange = { hint = it },
             label = { Text("Master Password Hint (Optional)") },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = BitwardenBlue,
@@ -208,5 +221,7 @@ fun SetupScreen(
         ) {
             Text("Create Vault", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
