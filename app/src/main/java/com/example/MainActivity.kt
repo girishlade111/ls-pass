@@ -190,9 +190,10 @@ fun LsPassApp(
             )
         }
 
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+        VaultAuthState.UNLOCKED -> {
+            BackHandler(enabled = currentScreen != Screen.Main) {
+                currentScreen = Screen.Main
+            }
 
             when (val screen = currentScreen) {
                 is Screen.Main -> {
