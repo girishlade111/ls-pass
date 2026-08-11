@@ -21,6 +21,7 @@ import com.example.data.models.WeakPasswordIssue
 import com.example.data.repository.VaultRepository
 import com.example.session.VaultSessionManager
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
