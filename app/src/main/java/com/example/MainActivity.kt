@@ -207,6 +207,7 @@ fun LsPassApp(
                         autoLockOption = autoLockOption,
                         clipboardClearOption = clipboardClearOption,
                         biometricEnabled = biometricEnabled,
+                        onTriggerBiometric = onTriggerBiometric,
                         onSearchQueryChange = { vaultViewModel.updateSearchQuery(it) },
                         onSelectItem = { item ->
                             vaultViewModel.recordItemAccess(item.id)
