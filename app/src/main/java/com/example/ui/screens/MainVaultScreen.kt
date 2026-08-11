@@ -149,6 +149,7 @@ fun MainVaultScreen(
     autoLockOption: AutoLockOption,
     clipboardClearOption: ClipboardClearOption,
     biometricEnabled: Boolean,
+    onTriggerBiometric: (onSuccess: () -> Unit) -> Unit = {},
     onSearchQueryChange: (String) -> Unit,
     onSelectItem: (DecryptedVaultItem) -> Unit,
     onRecordItemAccess: (String) -> Unit = {},
@@ -168,8 +169,11 @@ fun MainVaultScreen(
     var showFilterDialog by remember { mutableStateOf(false) }
     var showTypeBottomSheet by remember { mutableStateOf(false) }
     val selectedTypeFilter by vaultViewModel.selectedTypeFilter.collectAsState()
+    val showHiddenOnly by vaultViewModel.showHiddenOnly.collectAsState()
+    val isHiddenUnlocked by vaultViewModel.isHiddenUnlocked.collectAsState()
+    var showHiddenAuthDialog by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = isSearching || selectedTypeFilter != null || selectedTab != MainTab.VAULTS) {
+    BackHandler(enabled = isSearching || selectedTypeFilter != null || showHiddenOnly || selectedTab != MainTab.VAULTS) {
         when {
             isSearching -> {
                 isSearching = false
@@ -177,6 +181,9 @@ fun MainVaultScreen(
             }
             selectedTypeFilter != null -> {
                 vaultViewModel.setTypeFilter(null)
+            }
+            showHiddenOnly -> {
+                vaultViewModel.lockHiddenFolder()
             }
             selectedTab != MainTab.VAULTS -> {
                 selectedTab = MainTab.VAULTS
@@ -225,7 +232,7 @@ fun MainVaultScreen(
                                     .testTag("vault_search_input")
                             )
                         } else {
-                            Text("Vault", fontWeight = FontWeight.Bold)
+                            Text(if (showHiddenOnly) "Hidden Folder" else "Vault", fontWeight = FontWeight.Bold)
                         }
                     },
                     navigationIcon = {
@@ -308,7 +315,17 @@ fun MainVaultScreen(
                     recentlyAccessedItems = recentlyAccessedItems,
                     searchQuery = searchQuery,
                     selectedTypeFilter = selectedTypeFilter,
+                    showHiddenOnly = showHiddenOnly,
                     onSelectTypeFilter = { type -> vaultViewModel.setTypeFilter(type) },
+                    onOpenHiddenFolder = {
+                        if (isHiddenUnlocked) {
+                            vaultViewModel.unlockHiddenFolder()
+                        } else {
+                            showHiddenAuthDialog = true
+                        }
+                    },
+                    onLockHiddenFolder = { vaultViewModel.lockHiddenFolder() },
+                    onToggleItemHiddenState = { item -> vaultViewModel.toggleItemHiddenState(item) },
                     onSelectItem = onSelectItem,
                     onCopySecret = onCopySecret,
                     onRecordItemAccess = onRecordItemAccess
@@ -347,6 +364,21 @@ fun MainVaultScreen(
                 onDismiss = { showTypeBottomSheet = false }
             )
         }
+    }
+
+    if (showHiddenAuthDialog) {
+        HiddenFolderAuthDialog(
+            biometricEnabled = biometricEnabled,
+            onVerifyMasterPassword = { pwd -> vaultViewModel.verifyMasterPassword(pwd) },
+            onVerifyPin = { pin -> vaultViewModel.verifyPinPasscode(pin) },
+            onSetPin = { pin -> vaultViewModel.setPinPasscode(pin) },
+            onTriggerBiometric = onTriggerBiometric,
+            onSuccess = {
+                showHiddenAuthDialog = false
+                vaultViewModel.unlockHiddenFolder()
+            },
+            onDismiss = { showHiddenAuthDialog = false }
+        )
     }
 }
 
