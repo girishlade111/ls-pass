@@ -560,7 +560,11 @@ fun VaultsTabContent(
     recentlyAccessedItems: List<DecryptedVaultItem> = emptyList(),
     searchQuery: String = "",
     selectedTypeFilter: ItemType? = null,
+    showHiddenOnly: Boolean = false,
     onSelectTypeFilter: (ItemType?) -> Unit = {},
+    onOpenHiddenFolder: () -> Unit = {},
+    onLockHiddenFolder: () -> Unit = {},
+    onToggleItemHiddenState: (DecryptedVaultItem) -> Unit = {},
     onSelectItem: (DecryptedVaultItem) -> Unit,
     onCopySecret: (label: String, text: String) -> Unit,
     onRecordItemAccess: (String) -> Unit = {}
@@ -568,7 +572,41 @@ fun VaultsTabContent(
     val isSearching = searchQuery.isNotBlank()
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        if (selectedTypeFilter != null) {
+        if (showHiddenOnly) {
+            item {
+                Surface(
+                    color = Color(0xFFD84315).copy(alpha = 0.15f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = Color(0xFFD84315),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Hidden Folder Active (${items.size} items)",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFD84315),
+                                fontSize = 13.sp
+                            )
+                        }
+                        TextButton(onClick = onLockHiddenFolder) {
+                            Text("Lock Hidden Folder", color = Color(0xFFD84315), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        } else if (selectedTypeFilter != null) {
             item {
                 Surface(
                     color = BitwardenBlue.copy(alpha = 0.12f),
@@ -635,7 +673,8 @@ fun VaultsTabContent(
                         onCopySecret = { label, text ->
                             onRecordItemAccess(item.id)
                             onCopySecret(label, text)
-                        }
+                        },
+                        onToggleItemHiddenState = onToggleItemHiddenState
                     )
                 }
             }
@@ -650,7 +689,7 @@ fun VaultsTabContent(
 
             item {
                 Text(
-                    text = if (selectedTypeFilter != null) "Vault: ${selectedTypeFilter.label}" else "Vault: All",
+                    text = if (showHiddenOnly) "Vault: Hidden Folder" else if (selectedTypeFilter != null) "Vault: ${selectedTypeFilter.label}" else "Vault: All",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -675,6 +714,7 @@ fun VaultsTabContent(
                             onRecordItemAccess(item.id)
                             onCopySecret(label, text)
                         },
+                        onToggleItemHiddenState = onToggleItemHiddenState,
                         testTag = "recently_accessed_item_${item.id}"
                     )
                 }
@@ -694,8 +734,58 @@ fun VaultsTabContent(
                         onCopySecret = { label, text ->
                             onRecordItemAccess(item.id)
                             onCopySecret(label, text)
-                        }
+                        },
+                        onToggleItemHiddenState = onToggleItemHiddenState
                     )
+                }
+            }
+
+            item {
+                SectionHeaderLabel("SECURITY & HIDDEN")
+            }
+
+            item {
+                val hiddenCount = items.count { it.isHidden }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (showHiddenOnly) Color(0xFFD84315).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .clickable { onOpenHiddenFolder() }
+                        .testTag("hidden_folder_row")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFD84315).copy(alpha = 0.15f),
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFD84315), modifier = Modifier.size(22.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Hidden Folder", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+                            Text("Protected items (Master Pwd, PIN, Face/Bio)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFD84315).copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                "$hiddenCount",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFD84315),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
 
