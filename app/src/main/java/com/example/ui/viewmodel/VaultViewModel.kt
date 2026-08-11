@@ -48,6 +48,9 @@ class VaultViewModel(
     private val _selectedCollectionId = MutableStateFlow<String?>(null)
     val selectedCollectionId: StateFlow<String?> = _selectedCollectionId.asStateFlow()
 
+    private val _selectedTypeFilter = MutableStateFlow<ItemType?>(null)
+    val selectedTypeFilter: StateFlow<ItemType?> = _selectedTypeFilter.asStateFlow()
+
     private val _showHiddenOnly = MutableStateFlow(false)
     val showHiddenOnly: StateFlow<Boolean> = _showHiddenOnly.asStateFlow()
 
@@ -84,9 +87,15 @@ class VaultViewModel(
         _searchQuery,
         _selectedFolderId,
         _selectedCollectionId,
+        _selectedTypeFilter,
         _showHiddenOnly
-    ) { items, query, folderId, collectionId, showHidden ->
+    ) { items, query, folderId, collectionId, typeFilter, showHidden ->
         items.filter { item ->
+            // Type filter
+            if (typeFilter != null && item.type != typeFilter) {
+                return@filter false
+            }
+
             // Hidden filter
             if (showHidden) {
                 if (!item.isHidden) return@filter false
@@ -138,6 +147,10 @@ class VaultViewModel(
 
     fun setCollectionFilter(collectionId: String?) {
         _selectedCollectionId.value = collectionId
+    }
+
+    fun setTypeFilter(type: ItemType?) {
+        _selectedTypeFilter.value = type
     }
 
     fun setShowHiddenOnly(showHidden: Boolean) {
