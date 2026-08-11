@@ -21,17 +21,20 @@ import com.example.data.models.WeakPasswordIssue
 import com.example.data.repository.VaultRepository
 import com.example.session.VaultSessionManager
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class VaultViewModel(
     private val repository: VaultRepository,
     private val sessionManager: VaultSessionManager
@@ -54,6 +57,9 @@ class VaultViewModel(
     private val _showHiddenOnly = MutableStateFlow(false)
     val showHiddenOnly: StateFlow<Boolean> = _showHiddenOnly.asStateFlow()
 
+    private val _isHiddenUnlocked = MutableStateFlow(false)
+    val isHiddenUnlocked: StateFlow<Boolean> = _isHiddenUnlocked.asStateFlow()
+
     val folders: StateFlow<List<FolderEntity>> = repository.getAllFolders()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -63,7 +69,13 @@ class VaultViewModel(
     private val _recentlyAccessedIds = MutableStateFlow<List<String>>(emptyList())
     val recentlyAccessedIds: StateFlow<List<String>> = _recentlyAccessedIds.asStateFlow()
 
-    private val allDecryptedItems = repository.getDecryptedItems(sessionManager.getActiveMasterKey())
+    private val allDecryptedItems = sessionManager.activeMasterKeyFlow.flatMapLatest { masterKey ->
+        if (masterKey == null) {
+            flowOf(emptyList())
+        } else {
+            repository.getDecryptedItems(masterKey)
+        }
+    }
 
     val recentlyAccessedItems: StateFlow<List<DecryptedVaultItem>> = combine(
         allDecryptedItems,
