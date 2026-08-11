@@ -1584,6 +1584,8 @@ fun SettingsTabContent(
         ) {
             Text("Lock Vault Now", fontWeight = FontWeight.Bold)
         }
+
+        Spacer(modifier = Modifier.height(80.dp))
     }
 
     // Export Dialog
