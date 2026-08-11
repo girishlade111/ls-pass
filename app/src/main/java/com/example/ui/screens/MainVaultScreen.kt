@@ -1024,17 +1024,57 @@ fun VaultItemRow(
 }
 
 @Composable
-fun TypeRowItem(label: String, count: Int, icon: ImageVector) {
-    Row(
+fun TypeRowItem(
+    label: String,
+    count: Int,
+    icon: ImageVector,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {},
+    testTag: String = ""
+) {
+    Surface(
+        color = if (isSelected) BitwardenBlue.copy(alpha = 0.15f) else Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier)
+            .clickable(onClick = onClick)
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(label, fontWeight = FontWeight.Medium, fontSize = 15.sp, modifier = Modifier.weight(1f))
-        Text("$count", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (isSelected) BitwardenBlue else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                label,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 15.sp,
+                color = if (isSelected) BitwardenBlue else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = BitwardenBlue,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                "$count",
+                color = if (isSelected) BitwardenBlue else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                fontSize = 14.sp
+            )
+        }
     }
 }
 
@@ -1049,6 +1089,7 @@ fun SendTabContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
         Text("Local Send Payload", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -1091,6 +1132,8 @@ fun SendTabContent(
         ) {
             Text("Copy Local Send Payload", fontWeight = FontWeight.Bold)
         }
+
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
@@ -1115,6 +1158,7 @@ fun GeneratorTabContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
             .background(MaterialTheme.colorScheme.background)
     ) {
@@ -1208,6 +1252,8 @@ fun GeneratorTabContent(
             SwitchRow("Capitalize words", capitalize) { viewModel.setCapitalize(it) }
             SwitchRow("Include number", includeNumPassphrase) { viewModel.setIncludeNumberInPassphrase(it) }
         }
+
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
@@ -1318,6 +1364,7 @@ fun SettingsTabContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
             .background(MaterialTheme.colorScheme.background)
     ) {
