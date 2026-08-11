@@ -921,9 +921,12 @@ fun VaultItemRow(
     item: DecryptedVaultItem,
     onClick: () -> Unit,
     onCopySecret: (label: String, text: String) -> Unit,
+    onToggleItemHiddenState: (DecryptedVaultItem) -> Unit = {},
     modifier: Modifier = Modifier,
     testTag: String = "vault_item_row_${item.id}"
 ) {
+    var itemMenuExpanded by remember { mutableStateOf(false) }
+
     val iconBgColor = when (item.type) {
         ItemType.LOGIN -> BitwardenBlue.copy(alpha = 0.15f)
         ItemType.CARD -> Color(0xFF2E7D32).copy(alpha = 0.15f)
@@ -1132,18 +1135,46 @@ fun VaultItemRow(
                 }
             }
 
-            IconButton(
-                onClick = onClick,
-                modifier = Modifier
-                    .size(36.dp)
-                    .testTag("item_details_${item.id}")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Options",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
+            Box {
+                IconButton(
+                    onClick = { itemMenuExpanded = true },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .testTag("item_details_${item.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = itemMenuExpanded,
+                    onDismissRequest = { itemMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("View Details") },
+                        onClick = {
+                            itemMenuExpanded = false
+                            onClick()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(if (item.isHidden) "Remove from Hidden Folder" else "Move to Hidden Folder") },
+                        onClick = {
+                            itemMenuExpanded = false
+                            onToggleItemHiddenState(item)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (item.isHidden) Icons.Default.Visibility else Icons.Default.Lock,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                }
             }
         }
     }
