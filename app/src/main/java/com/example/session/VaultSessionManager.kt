@@ -62,9 +62,13 @@ class VaultSessionManager(private val context: Context) {
     private val KEY_AUTO_LOCK_OPTION = stringPreferencesKey("auto_lock_option")
     private val KEY_CLIPBOARD_CLEAR_OPTION = stringPreferencesKey("clipboard_clear_option")
     private val KEY_BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
+    private val KEY_PIN_PASSCODE = stringPreferencesKey("pin_passcode_hash")
 
     private val _authState = MutableStateFlow(VaultAuthState.LOCKED)
     val authState: StateFlow<VaultAuthState> = _authState.asStateFlow()
+
+    private val _activeMasterKeyFlow = MutableStateFlow<SecretKey?>(null)
+    val activeMasterKeyFlow: StateFlow<SecretKey?> = _activeMasterKeyFlow.asStateFlow()
 
     private var activeMasterKey: SecretKey? = null
     private var lastActivityTimeMs: Long = System.currentTimeMillis()
@@ -74,6 +78,7 @@ class VaultSessionManager(private val context: Context) {
 
     val isSetupFlow = context.dataStore.data.map { prefs -> prefs[KEY_IS_SETUP] ?: false }
     val passwordHintFlow = context.dataStore.data.map { prefs -> prefs[KEY_PASSWORD_HINT] ?: "" }
+    val pinPasscodeFlow = context.dataStore.data.map { prefs -> prefs[KEY_PIN_PASSCODE] ?: "" }
     val autoLockOptionFlow = context.dataStore.data.map { prefs ->
         val name = prefs[KEY_AUTO_LOCK_OPTION] ?: AutoLockOption.MIN_5.name
         try { AutoLockOption.valueOf(name) } catch (_: Exception) { AutoLockOption.MIN_5 }
@@ -107,6 +112,12 @@ class VaultSessionManager(private val context: Context) {
 
     fun getActiveMasterKey(): SecretKey? = activeMasterKey ?: sharedActiveMasterKey
 
+    private fun updateActiveMasterKey(key: SecretKey?) {
+        activeMasterKey = key
+        setSharedMasterKey(key)
+        _activeMasterKeyFlow.value = key
+    }
+
     suspend fun setupVault(masterPassword: String, hint: String, enableBiometric: Boolean): Boolean {
         if (masterPassword.isBlank()) return false
 
@@ -134,8 +145,7 @@ class VaultSessionManager(private val context: Context) {
             } catch (_: Exception) {}
         }
 
-        activeMasterKey = derivedKey
-        setSharedMasterKey(derivedKey)
+        updateActiveMasterKey(derivedKey)
         lastActivityTimeMs = System.currentTimeMillis()
         _authState.value = VaultAuthState.UNLOCKED
         return true
@@ -156,8 +166,7 @@ class VaultSessionManager(private val context: Context) {
         }
 
         if (decryptedVerification == "LS_PASS_VALID_VAULT_TOKEN") {
-            activeMasterKey = derivedKey
-            setSharedMasterKey(derivedKey)
+            updateActiveMasterKey(derivedKey)
             lastActivityTimeMs = System.currentTimeMillis()
             _authState.value = VaultAuthState.UNLOCKED
 
@@ -184,16 +193,41 @@ class VaultSessionManager(private val context: Context) {
         val encryptedKeyBytes = prefs[stringPreferencesKey("encrypted_master_key_for_bio")] ?: return false
         val masterKey = biometricManager.decryptMasterKey(encryptedKeyBytes) ?: return false
 
-        activeMasterKey = masterKey
-        setSharedMasterKey(masterKey)
+        updateActiveMasterKey(masterKey)
         lastActivityTimeMs = System.currentTimeMillis()
         _authState.value = VaultAuthState.UNLOCKED
         return true
     }
 
+    suspend fun setPinPasscode(pin: String) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_PIN_PASSCODE] = pin.trim()
+        }
+    }
+
+    suspend fun verifyPinPasscode(pin: String): Boolean {
+        val savedPin = context.dataStore.data.map { it[KEY_PIN_PASSCODE] ?: "" }.first()
+        return savedPin.isNotBlank() && savedPin == pin.trim()
+    }
+
+    suspend fun verifyMasterPassword(masterPassword: String): Boolean {
+        val prefs = context.dataStore.data.first()
+        val saltBase64 = prefs[KEY_SALT] ?: return false
+        val encryptedVerification = prefs[KEY_VERIFICATION_TOKEN] ?: return false
+
+        val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
+        val derivedKey = CryptoManager.deriveKey(masterPassword.toCharArray(), salt)
+
+        val decryptedVerification = try {
+            CryptoManager.decrypt(encryptedVerification, derivedKey)
+        } catch (e: Exception) {
+            ""
+        }
+        return decryptedVerification == "LS_PASS_VALID_VAULT_TOKEN"
+    }
+
     fun lockVault() {
-        activeMasterKey = null
-        setSharedMasterKey(null)
+        updateActiveMasterKey(null)
         _authState.value = VaultAuthState.LOCKED
     }
 
