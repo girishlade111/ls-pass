@@ -523,6 +523,8 @@ fun VaultsTabContent(
     items: List<DecryptedVaultItem>,
     recentlyAccessedItems: List<DecryptedVaultItem> = emptyList(),
     searchQuery: String = "",
+    selectedTypeFilter: ItemType? = null,
+    onSelectTypeFilter: (ItemType?) -> Unit = {},
     onSelectItem: (DecryptedVaultItem) -> Unit,
     onCopySecret: (label: String, text: String) -> Unit,
     onRecordItemAccess: (String) -> Unit = {}
@@ -530,6 +532,42 @@ fun VaultsTabContent(
     val isSearching = searchQuery.isNotBlank()
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
+        if (selectedTypeFilter != null) {
+            item {
+                Surface(
+                    color = BitwardenBlue.copy(alpha = 0.12f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = BitwardenBlue,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Filtered by: ${selectedTypeFilter.label}",
+                                fontWeight = FontWeight.Bold,
+                                color = BitwardenBlue,
+                                fontSize = 13.sp
+                            )
+                        }
+                        TextButton(onClick = { onSelectTypeFilter(null) }) {
+                            Text("Show All Items", color = BitwardenBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
         if (isSearching) {
             item {
                 SectionHeaderLabel("SEARCH RESULTS (${items.size})")
@@ -576,7 +614,7 @@ fun VaultsTabContent(
 
             item {
                 Text(
-                    text = "Vault: All",
+                    text = if (selectedTypeFilter != null) "Vault: ${selectedTypeFilter.label}" else "Vault: All",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -630,17 +668,59 @@ fun VaultsTabContent(
             }
 
             item {
-                TypeRowItem(label = "Login", count = loginCount, icon = Icons.Default.Language)
-                TypeRowItem(label = "Card", count = cardCount, icon = Icons.Default.CreditCard)
-                TypeRowItem(label = "Identity", count = identityCount, icon = Icons.Default.Person)
-                TypeRowItem(label = "Secure Note", count = noteCount, icon = Icons.Default.Description)
-                TypeRowItem(label = "SSH Key", count = sshCount, icon = Icons.Default.Key)
-                TypeRowItem(label = "Passkey", count = passkeyCount, icon = Icons.Default.VpnKey)
+                TypeRowItem(
+                    label = "Login",
+                    count = loginCount,
+                    icon = Icons.Default.Language,
+                    isSelected = (selectedTypeFilter == ItemType.LOGIN),
+                    onClick = { onSelectTypeFilter(if (selectedTypeFilter == ItemType.LOGIN) null else ItemType.LOGIN) },
+                    testTag = "type_filter_login"
+                )
+                TypeRowItem(
+                    label = "Card",
+                    count = cardCount,
+                    icon = Icons.Default.CreditCard,
+                    isSelected = (selectedTypeFilter == ItemType.CARD),
+                    onClick = { onSelectTypeFilter(if (selectedTypeFilter == ItemType.CARD) null else ItemType.CARD) },
+                    testTag = "type_filter_card"
+                )
+                TypeRowItem(
+                    label = "Identity",
+                    count = identityCount,
+                    icon = Icons.Default.Person,
+                    isSelected = (selectedTypeFilter == ItemType.IDENTITY),
+                    onClick = { onSelectTypeFilter(if (selectedTypeFilter == ItemType.IDENTITY) null else ItemType.IDENTITY) },
+                    testTag = "type_filter_identity"
+                )
+                TypeRowItem(
+                    label = "Secure Note",
+                    count = noteCount,
+                    icon = Icons.Default.Description,
+                    isSelected = (selectedTypeFilter == ItemType.SECURE_NOTE),
+                    onClick = { onSelectTypeFilter(if (selectedTypeFilter == ItemType.SECURE_NOTE) null else ItemType.SECURE_NOTE) },
+                    testTag = "type_filter_secure_note"
+                )
+                TypeRowItem(
+                    label = "SSH Key",
+                    count = sshCount,
+                    icon = Icons.Default.Key,
+                    isSelected = (selectedTypeFilter == ItemType.SSH_KEY),
+                    onClick = { onSelectTypeFilter(if (selectedTypeFilter == ItemType.SSH_KEY) null else ItemType.SSH_KEY) },
+                    testTag = "type_filter_ssh_key"
+                )
+                TypeRowItem(
+                    label = "Passkey",
+                    count = passkeyCount,
+                    icon = Icons.Default.VpnKey,
+                    isSelected = (selectedTypeFilter == ItemType.PASSKEY),
+                    onClick = { onSelectTypeFilter(if (selectedTypeFilter == ItemType.PASSKEY) null else ItemType.PASSKEY) },
+                    testTag = "type_filter_passkey"
+                )
             }
 
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionHeaderLabel("ALL ITEMS")
+                SectionHeaderLabel(if (selectedTypeFilter != null) "FILTERED ITEMS (${items.size})" else "ALL ITEMS")
             }
 
             if (items.isEmpty()) {
