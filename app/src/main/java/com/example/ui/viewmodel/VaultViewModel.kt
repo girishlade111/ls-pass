@@ -176,6 +176,33 @@ class VaultViewModel(
         _showHiddenOnly.value = showHidden
     }
 
+    fun unlockHiddenFolder() {
+        _isHiddenUnlocked.value = true
+        _showHiddenOnly.value = true
+    }
+
+    fun lockHiddenFolder() {
+        _isHiddenUnlocked.value = false
+        _showHiddenOnly.value = false
+    }
+
+    suspend fun verifyMasterPassword(password: String): Boolean =
+        sessionManager.verifyMasterPassword(password)
+
+    suspend fun verifyPinPasscode(pin: String): Boolean =
+        sessionManager.verifyPinPasscode(pin)
+
+    suspend fun setPinPasscode(pin: String) =
+        sessionManager.setPinPasscode(pin)
+
+    fun toggleItemHiddenState(item: DecryptedVaultItem) {
+        viewModelScope.launch {
+            val key = sessionManager.getActiveMasterKey() ?: return@launch
+            val updated = item.copy(isHidden = !item.isHidden)
+            repository.saveItem(updated, key)
+        }
+    }
+
     fun recordItemAccess(itemId: String) {
         if (itemId.isBlank()) return
         val list = _recentlyAccessedIds.value.toMutableList()
