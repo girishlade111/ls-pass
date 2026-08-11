@@ -76,6 +76,7 @@ fun ItemDetailScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onToggleHidden: () -> Unit = {},
     onCopySecret: (label: String, text: String) -> Unit
 ) {
     val context = LocalContext.current
@@ -122,6 +123,14 @@ fun ItemDetailScreen(
                                 onEdit()
                             },
                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(if (item.isHidden) "Remove from Hidden Folder" else "Move to Hidden Folder") },
+                            onClick = {
+                                menuExpanded = false
+                                onToggleHidden()
+                            },
+                            leadingIcon = { Icon(if (item.isHidden) Icons.Default.Visibility else Icons.Default.Lock, contentDescription = null) }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
