@@ -268,6 +268,10 @@ fun LsPassApp(
                             vaultViewModel.deleteItem(screen.item.id)
                             currentScreen = Screen.Main
                         },
+                        onToggleHidden = {
+                            vaultViewModel.toggleItemHiddenState(screen.item)
+                            currentScreen = Screen.Main
+                        },
                         onCopySecret = { label, text ->
                             vaultViewModel.recordItemAccess(screen.item.id)
                             sessionManager.copyToClipboardAndScheduleClear(label, text, clipboardClearOption)
