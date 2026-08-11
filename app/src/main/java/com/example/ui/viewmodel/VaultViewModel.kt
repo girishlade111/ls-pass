@@ -89,7 +89,15 @@ class VaultViewModel(
         _selectedCollectionId,
         _selectedTypeFilter,
         _showHiddenOnly
-    ) { items, query, folderId, collectionId, typeFilter, showHidden ->
+    ) { flows: Array<Any?> ->
+        @Suppress("UNCHECKED_CAST")
+        val items = flows[0] as List<DecryptedVaultItem>
+        val query = flows[1] as String
+        val folderId = flows[2] as String?
+        val collectionId = flows[3] as String?
+        val typeFilter = flows[4] as ItemType?
+        val showHidden = flows[5] as Boolean
+
         items.filter { item ->
             // Type filter
             if (typeFilter != null && item.type != typeFilter) {
@@ -119,7 +127,6 @@ class VaultViewModel(
                 val nameMatch = item.name.lowercase().contains(q)
 
                 val usernameMatch = (item.loginData?.username?.lowercase()?.contains(q) == true) ||
-                        (item.identityData?.username?.lowercase()?.contains(q) == true) ||
                         (item.identityData?.email?.lowercase()?.contains(q) == true) ||
                         (item.passkeyData?.userHandle?.lowercase()?.contains(q) == true) ||
                         (item.cardData?.cardholderName?.lowercase()?.contains(q) == true)
