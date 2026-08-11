@@ -121,6 +121,11 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Check
+
 enum class MainTab(val label: String, val icon: ImageVector) {
     VAULTS("Vaults", Icons.Default.Lock),
     SEND("Send", Icons.AutoMirrored.Filled.Send),
@@ -158,6 +163,22 @@ fun MainVaultScreen(
     var isSearching by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
     var showTypeBottomSheet by remember { mutableStateOf(false) }
+    val selectedTypeFilter by vaultViewModel.selectedTypeFilter.collectAsState()
+
+    BackHandler(enabled = isSearching || selectedTypeFilter != null || selectedTab != MainTab.VAULTS) {
+        when {
+            isSearching -> {
+                isSearching = false
+                onSearchQueryChange("")
+            }
+            selectedTypeFilter != null -> {
+                vaultViewModel.setTypeFilter(null)
+            }
+            selectedTab != MainTab.VAULTS -> {
+                selectedTab = MainTab.VAULTS
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -282,6 +303,8 @@ fun MainVaultScreen(
                     items = items,
                     recentlyAccessedItems = recentlyAccessedItems,
                     searchQuery = searchQuery,
+                    selectedTypeFilter = selectedTypeFilter,
+                    onSelectTypeFilter = { type -> vaultViewModel.setTypeFilter(type) },
                     onSelectItem = onSelectItem,
                     onCopySecret = onCopySecret,
                     onRecordItemAccess = onRecordItemAccess
